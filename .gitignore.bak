@@ -1,0 +1,11 @@
+# IDE & Cache
+.acside/
+.gradle/
+.kotlin/
+
+# Build outputs
+build/
+app/build/
+
+# Local configuration
+local.properties

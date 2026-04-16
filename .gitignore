@@ -1,0 +1,34 @@
+# IDE
+.idea/
+*.iml
+.acside/
+
+# Local config
+local.properties
+
+# Gradle / Kotlin
+.gradle/
+.kotlin/
+
+# Build outputs
+build/
+*/build/
+
+# Native build
+.externalNativeBuild/
+.cxx/
+
+# Capture files
+captures/
+
+# Package files
+*.apk
+*.aab
+
+# Signing files
+*.jks
+*.keystore
+
+# OS files
+.DS_Store
+Thumbs.db
