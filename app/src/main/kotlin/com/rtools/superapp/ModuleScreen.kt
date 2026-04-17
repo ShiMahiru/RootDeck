@@ -215,7 +215,12 @@ fun ModuleScreen(bottomPadding: Dp = 14.dp) {
                             expanded = menuExpanded,
                             onDismissRequest = { menuExpanded = false },
                             modifier = Modifier.width(220.dp),
-                            offset = DpOffset(x = 0.dp, y = 8.dp)
+                            offset = DpOffset(x = 0.dp, y = 8.dp),
+                            shape = RoundedCornerShape(0.dp),
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            tonalElevation = 0.dp,
+                            shadowElevation = 0.dp,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                         ) {
                             ModuleMenuItem(
                                 text = "启用 WebView 调试",
