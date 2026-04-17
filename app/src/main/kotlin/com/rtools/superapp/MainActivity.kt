@@ -94,6 +94,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import androidx.compose.foundation.interaction.MutableInteractionSource
 
 data class InstalledAppItem(
     val appName: String,
@@ -139,6 +140,16 @@ enum class AppThemeMode(val label: String) {
     SYSTEM("跟随系统"),
     LIGHT("浅色"),
     DARK("深色")
+}
+
+@Composable
+private fun Modifier.noRippleClickable(onClick: () -> Unit): Modifier {
+    val interactionSource = remember { MutableInteractionSource() }
+    return clickable(
+        interactionSource = interactionSource,
+        indication = null,
+        onClick = onClick
+    )
 }
 
 @Composable
@@ -275,6 +286,7 @@ private fun MainRootScreen(packageManager: PackageManager) {
     }
 }
 
+
 @Composable
 private fun FloatingBottomBar(
     selectedTab: MainTab,
@@ -341,7 +353,7 @@ private fun AppleBottomBarItem(
     Column(
         modifier = Modifier
             .clip(RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick)
+            .noRippleClickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -455,6 +467,12 @@ private fun MiuiAppManagerScreen(
     LaunchedEffect(keyword, showSystemApps, sortMode, descending, filteredApps.size) {
         if (!loading && filteredApps.isNotEmpty()) {
             listState.scrollToItem(0)
+        }
+    }
+
+    LaunchedEffect(loading, apps.size, filteredApps.size, showSystemApps, keyword) {
+        if (!loading && keyword.isBlank() && !showSystemApps && apps.isNotEmpty() && filteredApps.isEmpty()) {
+            onShowSystemAppsChange(true)
         }
     }
 
@@ -657,7 +675,7 @@ private fun TopTitleRow(
             Surface(
                 modifier = Modifier
                     .size(46.dp)
-                    .clickable {
+                    .noRippleClickable {
                         onSortMenuExpandedChange(false)
                         onMainMenuExpandedChange(true)
                     },
@@ -762,8 +780,7 @@ private fun MenuItemRow(
         text = {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = text,
@@ -772,6 +789,7 @@ private fun MenuItemRow(
                     fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
                 )
                 if (selected) {
+                    Spacer(modifier = Modifier.width(8.dp))
                     Icon(
                         imageVector = Icons.Filled.Check,
                         contentDescription = null,
@@ -846,7 +864,7 @@ private fun SearchBar(
                         text = "清除",
                         color = MaterialTheme.colorScheme.primary,
                         fontSize = 12.sp,
-                        modifier = Modifier.clickable {
+                        modifier = Modifier.noRippleClickable {
                             onKeywordChange("")
                             focusManager.clearFocus()
                         }
@@ -881,7 +899,7 @@ private fun AppItemCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .noRippleClickable(onClick = onClick),
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
