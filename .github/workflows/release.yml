@@ -1,4 +1,4 @@
-name: Build and Draft Signed Release
+name: 构建并草稿签名发布版
 
 on:
   # 仅支持在 GitHub 网页端手动点击 Run workflow 触发
