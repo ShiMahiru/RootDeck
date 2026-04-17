@@ -119,4 +119,3 @@ class WebUIActivity : ComponentActivity(), FileSystemService.Listener {
         FileSystemService.removeListener(this)
     }
 }
-
