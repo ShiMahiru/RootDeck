@@ -89,6 +89,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.rtools.superapp.ui.theme.ComposeEmptyActivityTheme
+import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -389,13 +390,7 @@ private fun MiuiAppManagerScreen(
     val coroutineScope = rememberCoroutineScope()
 
     suspend fun executeRootCommand(cmd: String): Boolean = withContext(Dispatchers.IO) {
-        try {
-            val process = Runtime.getRuntime().exec(arrayOf("su", "-c", cmd))
-            val exitCode = process.waitFor()
-            exitCode == 0
-        } catch (e: Exception) {
-            false
-        }
+        Shell.cmd(cmd).exec().isSuccess
     }
 
     suspend fun setAppRootPermission(packageName: String, grant: Boolean) = withContext(Dispatchers.IO) {
@@ -446,15 +441,16 @@ private fun MiuiAppManagerScreen(
         listState.scrollToItem(0)
     }
 
-    val filteredApps = apps
-        .asSequence()
-        .filter { showSystemApps || !it.isSystem }
-        .filter {
-            keyword.isBlank() || it.appName.contains(keyword, ignoreCase = true) ||
-                it.packageName.contains(keyword, ignoreCase = true)
-        }
-        .sortedWith(appComparator(sortMode, descending))
-        .toList()
+    val filteredApps = remember(apps, keyword, showSystemApps, sortMode, descending) {
+        apps.asSequence()
+            .filter { showSystemApps || !it.isSystem }
+            .filter {
+                keyword.isBlank() || it.appName.contains(keyword, ignoreCase = true) ||
+                    it.packageName.contains(keyword, ignoreCase = true)
+            }
+            .sortedWith(appComparator(sortMode, descending))
+            .toList()
+    }
 
     LaunchedEffect(keyword, showSystemApps, sortMode, descending, filteredApps.size) {
         if (!loading && filteredApps.isNotEmpty()) {
@@ -1005,16 +1001,13 @@ private fun RootActionDialog(
 
 private suspend fun requestManagerRoot(): RootGrantState = withContext(Dispatchers.IO) {
     try {
-        val process = Runtime.getRuntime().exec(arrayOf("su", "-c", "id"))
-        val stdout = process.inputStream.bufferedReader().use { it.readText() }
-        val stderr = process.errorStream.bufferedReader().use { it.readText() }
-        val exitCode = process.waitFor()
-
-        when {
-            exitCode == 0 && stdout.contains("uid=0") -> RootGrantState.GRANTED
-            stderr.contains("not found", ignoreCase = true) -> RootGrantState.UNAVAILABLE
-            else -> RootGrantState.DENIED
+        if (Shell.getShell().isRoot) {
+            RootGrantState.GRANTED
+        } else {
+            RootGrantState.DENIED
         }
+    } catch (_: NoClassDefFoundError) {
+        RootGrantState.UNAVAILABLE
     } catch (_: Exception) {
         RootGrantState.UNAVAILABLE
     }
