@@ -38,14 +38,26 @@ jobs:
         run: |
           set -euo pipefail
 
-          missing=0
+          missing_vars=()
           for var in KEYSTORE_BASE64 KEY_ALIAS KEYSTORE_PASSWORD KEY_PASSWORD; do
             if [ -z "${!var:-}" ]; then
-              echo "::error::缺少必填 Secret: $var"
-              missing=1
+              missing_vars+=("$var")
             fi
           done
-          if [ "$missing" -ne 0 ]; then
+
+          if [ "${#missing_vars[@]}" -ne 0 ]; then
+            joined_missing="$(IFS=', '; echo "${missing_vars[*]}")"
+            echo "::error::缺少必填 Secrets: $joined_missing"
+            {
+              echo "### ❌ 发布签名配置缺失"
+              echo ""
+              echo "当前工作流需要以下仓库 Secrets 才能继续："
+              for var in "${missing_vars[@]}"; do
+                echo "- \`$var\`"
+              done
+              echo ""
+              echo "请到 **Settings → Secrets and variables → Actions** 中补齐后重试。"
+            } >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
 
