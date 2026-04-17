@@ -32,11 +32,12 @@
 
 1. 检出代码。
 2. 配置 JDK 17。
-3. 编译 `assembleRelease`。
-4. 使用仓库 Secrets 自动签名 APK。
-5. 将输出重命名为：
+3. 校验签名 Secrets（缺失、Base64 无效、密码不匹配、Alias 不存在会提前失败）。
+4. 编译 `assembleRelease`。
+5. 使用仓库 Secrets 自动签名 APK。
+6. 将输出重命名为：
    - `RootDeck-<version>-signed.apk`
-6. 创建一个 GitHub Release 草稿，并上传该 APK。
+7. 创建一个 GitHub Release 草稿，并上传该 APK。
 
 ## 需要提前配置的 Secrets
 
@@ -46,6 +47,23 @@
 - `KEY_ALIAS`
 - `KEYSTORE_PASSWORD`
 - `KEY_PASSWORD`
+
+## 常见问题排查
+
+### 1) `apksigner` 报错：`Tag number over 30 is not supported`
+
+通常是签名材料有问题，重点检查：
+
+- `KEYSTORE_BASE64` 是否真的是 **keystore 文件本体** 的 Base64（不是证书文本，也不是路径）。
+- `KEYSTORE_PASSWORD` 是否与该 keystore 匹配。
+- `KEY_ALIAS` 是否存在于 keystore 中。
+- `KEY_PASSWORD` 是否与该 alias 的私钥密码匹配。
+
+本工作流已增加预校验步骤，会在编译前给出更明确的错误提示。
+
+### 2) Node.js 20 弃用警告
+
+工作流已设置 `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true`，提前切换到 Node.js 24 运行 JS Actions，以规避 Node.js 20 弃用告警。
 
 ## 版本号建议
 
