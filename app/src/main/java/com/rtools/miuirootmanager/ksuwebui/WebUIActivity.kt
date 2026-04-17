@@ -70,6 +70,7 @@ class WebUIActivity : ComponentActivity(), FileSystemService.Listener {
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
             settings.allowFileAccess = false
+            settings.blockNetworkLoads = true
             webviewInterface = WebViewInterface(this@WebUIActivity, this, moduleDir)
         }
 
@@ -119,4 +120,3 @@ class WebUIActivity : ComponentActivity(), FileSystemService.Listener {
         FileSystemService.removeListener(this)
     }
 }
-
