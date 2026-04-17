@@ -1,10 +1,7 @@
 name: Build and Draft Signed Release
 
 on:
-  push:
-    tags:
-      - 'v*'
-  # 也支持在 GitHub 网页端手动点击 Run workflow 触发
+  # 仅支持在 GitHub 网页端手动点击 Run workflow 触发
   workflow_dispatch:
     inputs:
       version:
