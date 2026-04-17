@@ -32,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
@@ -42,18 +43,32 @@ import androidx.compose.ui.unit.sp
 fun SettingsScreen(
     themeMode: AppThemeMode,
     onThemeModeChange: (AppThemeMode) -> Unit,
+    appLanguage: AppLanguage,
+    onAppLanguageChange: (AppLanguage) -> Unit,
     floatingBottomBar: Boolean,
     onFloatingBottomBarChange: (Boolean) -> Unit,
     bottomPadding: Dp
 ) {
     var themeMenuExpanded by remember { mutableStateOf(false) }
+    var languageMenuExpanded by remember { mutableStateOf(false) }
+
+    fun themeLabel(mode: AppThemeMode): String = when (mode) {
+        AppThemeMode.SYSTEM -> stringResource(R.string.theme_system)
+        AppThemeMode.LIGHT -> stringResource(R.string.theme_light)
+        AppThemeMode.DARK -> stringResource(R.string.theme_dark)
+    }
+
+    fun languageLabel(language: AppLanguage): String = when (language) {
+        AppLanguage.SYSTEM -> stringResource(R.string.lang_system)
+        AppLanguage.ZH_CN -> stringResource(R.string.lang_zh_cn)
+        AppLanguage.EN -> stringResource(R.string.lang_en)
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .statusBarsPadding()
     ) {
-        // 标题栏样式对齐模块与应用列表
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -62,7 +77,7 @@ fun SettingsScreen(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = "设置",
+                text = stringResource(R.string.settings_title),
                 color = MaterialTheme.colorScheme.onBackground,
                 fontWeight = FontWeight.Bold,
                 fontSize = 19.sp,
@@ -82,7 +97,6 @@ fun SettingsScreen(
                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                     Column(modifier = Modifier.fillMaxWidth()) {
-                        // 主题设置
                         Box {
                             Row(
                                 modifier = Modifier
@@ -93,14 +107,14 @@ fun SettingsScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(
-                                    text = "主题",
+                                    text = stringResource(R.string.settings_theme),
                                     color = MaterialTheme.colorScheme.onBackground,
                                     fontSize = 17.sp,
                                     fontWeight = FontWeight.Medium
                                 )
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
-                                        text = themeMode.label,
+                                        text = themeLabel(themeMode),
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontSize = 15.sp
                                     )
@@ -125,7 +139,7 @@ fun SettingsScreen(
                                     DropdownMenuItem(
                                         text = {
                                             Text(
-                                                text = mode.label,
+                                                text = themeLabel(mode),
                                                 color = if (themeMode == mode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground,
                                                 fontSize = 15.sp
                                             )
@@ -145,7 +159,68 @@ fun SettingsScreen(
                             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                         )
 
-                        // 悬浮底栏设置
+                        Box {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { languageMenuExpanded = true }
+                                    .padding(horizontal = 18.dp, vertical = 18.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.settings_language),
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = languageLabel(appLanguage),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontSize = 15.sp
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Icon(
+                                        imageVector = Icons.Filled.ChevronRight,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+
+                            DropdownMenu(
+                                expanded = languageMenuExpanded,
+                                onDismissRequest = { languageMenuExpanded = false },
+                                modifier = Modifier.width(180.dp),
+                                offset = DpOffset(x = 160.dp, y = 0.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                containerColor = MaterialTheme.colorScheme.surface
+                            ) {
+                                AppLanguage.values().forEach { language ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                text = languageLabel(language),
+                                                color = if (appLanguage == language) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground,
+                                                fontSize = 15.sp
+                                            )
+                                        },
+                                        onClick = {
+                                            onAppLanguageChange(language)
+                                            languageMenuExpanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 18.dp),
+                            thickness = 0.5.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                        )
+
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -155,7 +230,7 @@ fun SettingsScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = "Apple悬浮底栏",
+                                text = stringResource(R.string.settings_floating_bar),
                                 color = MaterialTheme.colorScheme.onBackground,
                                 fontSize = 17.sp,
                                 fontWeight = FontWeight.Medium

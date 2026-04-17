@@ -14,6 +14,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -78,21 +82,30 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.rtools.superapp.ui.theme.ComposeEmptyActivityTheme
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import kotlin.math.roundToInt
 
 data class InstalledAppItem(
     val appName: String,
@@ -140,6 +153,12 @@ enum class AppThemeMode(val label: String) {
     DARK("深色")
 }
 
+enum class AppLanguage(val tag: String) {
+    SYSTEM("system"),
+    ZH_CN("zh-CN"),
+    EN("en")
+}
+
 @Composable
 private fun MainRootScreen(packageManager: PackageManager) {
     val context = LocalContext.current
@@ -164,9 +183,13 @@ private fun MainRootScreen(packageManager: PackageManager) {
     var floatingBottomBar by rememberSaveable {
         mutableStateOf(prefs.getBoolean("floating_bottom_bar", false))
     }
+    var appLanguageName by rememberSaveable {
+        mutableStateOf(prefs.getString("app_language", AppLanguage.SYSTEM.name) ?: AppLanguage.SYSTEM.name)
+    }
 
     val sortMode = SortMode.values().firstOrNull { it.name == sortModeName } ?: SortMode.INSTALL_TIME
     val themeMode = AppThemeMode.values().firstOrNull { it.name == themeModeName } ?: AppThemeMode.SYSTEM
+    val appLanguage = AppLanguage.values().firstOrNull { it.name == appLanguageName } ?: AppLanguage.SYSTEM
     val darkTheme = when (themeMode) {
         AppThemeMode.SYSTEM -> isSystemInDarkTheme()
         AppThemeMode.LIGHT -> false
@@ -198,6 +221,20 @@ private fun MainRootScreen(packageManager: PackageManager) {
         prefs.edit().putBoolean("floating_bottom_bar", value).apply()
     }
 
+    fun saveAppLanguage(value: AppLanguage) {
+        appLanguageName = value.name
+        prefs.edit().putString("app_language", value.name).apply()
+    }
+
+    LaunchedEffect(appLanguage) {
+        val locales = when (appLanguage) {
+            AppLanguage.SYSTEM -> androidx.core.os.LocaleListCompat.getEmptyLocaleList()
+            AppLanguage.ZH_CN -> androidx.core.os.LocaleListCompat.forLanguageTags("zh-CN")
+            AppLanguage.EN -> androidx.core.os.LocaleListCompat.forLanguageTags("en")
+        }
+        androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(locales)
+    }
+
     ComposeEmptyActivityTheme(darkTheme = darkTheme) {
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
@@ -211,20 +248,20 @@ private fun MainRootScreen(packageManager: PackageManager) {
                         NavigationBarItem(
                             selected = selectedTab == MainTab.APPS,
                             onClick = { selectedTab = MainTab.APPS },
-                            icon = { Icon(Icons.Filled.Apps, contentDescription = "应用") },
-                            label = { Text("应用") }
+                            icon = { Icon(Icons.Filled.Apps, contentDescription = stringResource(R.string.tab_apps)) },
+                            label = { Text(stringResource(R.string.tab_apps)) }
                         )
                         NavigationBarItem(
                             selected = selectedTab == MainTab.MODULES,
                             onClick = { selectedTab = MainTab.MODULES },
-                            icon = { Icon(Icons.Filled.Extension, contentDescription = "模块") },
-                            label = { Text("模块") }
+                            icon = { Icon(Icons.Filled.Extension, contentDescription = stringResource(R.string.tab_modules)) },
+                            label = { Text(stringResource(R.string.tab_modules)) }
                         )
                         NavigationBarItem(
                             selected = selectedTab == MainTab.SETTINGS,
                             onClick = { selectedTab = MainTab.SETTINGS },
-                            icon = { Icon(Icons.Filled.Settings, contentDescription = "设置") },
-                            label = { Text("设置") }
+                            icon = { Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.tab_settings)) },
+                            label = { Text(stringResource(R.string.tab_settings)) }
                         )
                     }
                 }
@@ -256,6 +293,8 @@ private fun MainRootScreen(packageManager: PackageManager) {
                     MainTab.SETTINGS -> SettingsScreen(
                         themeMode = themeMode,
                         onThemeModeChange = { saveThemeMode(it) },
+                        appLanguage = appLanguage,
+                        onAppLanguageChange = { saveAppLanguage(it) },
                         floatingBottomBar = floatingBottomBar,
                         onFloatingBottomBarChange = { saveFloatingBottomBar(it) },
                         bottomPadding = listBottomPadding
@@ -280,17 +319,45 @@ private fun FloatingBottomBar(
     onTabSelected: (MainTab) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val coroutineScope = rememberCoroutineScope()
+    val dragOffsetX = remember { Animatable(0f) }
+    var pressed by remember { mutableStateOf(false) }
+    var autoHidden by remember { mutableStateOf(false) }
+    var interactionTick by remember { mutableIntStateOf(0) }
+
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.96f else 1f,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "floating-dock-scale"
+    )
+    val alpha by animateFloatAsState(
+        targetValue = if (autoHidden) 0.30f else 1f,
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        label = "floating-dock-alpha"
+    )
+    val hiddenOffset by animateFloatAsState(
+        targetValue = if (autoHidden) 84f else 0f,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "floating-dock-offset"
+    )
+
+    LaunchedEffect(interactionTick) {
+        autoHidden = false
+        delay(2600)
+        autoHidden = true
+    }
+
     Box(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(horizontal = 48.dp, vertical = 20.dp),
+            .offset { IntOffset(dragOffsetX.value.roundToInt(), hiddenOffset.roundToInt()) }
+            .padding(horizontal = 36.dp, vertical = 20.dp),
         contentAlignment = Alignment.Center
     ) {
         Surface(
             shape = RoundedCornerShape(32.dp),
-            // 修改点：改为实体背景色，去除透明度
-            color = MaterialTheme.colorScheme.surface,
+            color = Color.Transparent,
             tonalElevation = 0.dp,
             shadowElevation = 8.dp,
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
@@ -298,27 +365,81 @@ private fun FloatingBottomBar(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .blur(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) 1.dp else 0.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.74f),
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.42f)
+                            )
+                        )
+                    )
+                    .graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
+                        this.alpha = alpha
+                    }
+                    .pointerInput(Unit) {
+                        detectDragGestures(
+                            onDragStart = {
+                                pressed = true
+                                interactionTick++
+                            },
+                            onDragEnd = {
+                                pressed = false
+                                coroutineScope.launch {
+                                    dragOffsetX.animateTo(
+                                        0f,
+                                        spring(
+                                            dampingRatio = Spring.DampingRatioLowBouncy,
+                                            stiffness = Spring.StiffnessLow
+                                        )
+                                    )
+                                }
+                            },
+                            onDragCancel = {
+                                pressed = false
+                                coroutineScope.launch {
+                                    dragOffsetX.animateTo(0f, spring())
+                                }
+                            }
+                        ) { change, dragAmount ->
+                            change.consume()
+                            coroutineScope.launch {
+                                dragOffsetX.snapTo((dragOffsetX.value + dragAmount.x).coerceIn(-120f, 120f))
+                            }
+                        }
+                    }
                     .padding(horizontal = 24.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 AppleBottomBarItem(
                     icon = Icons.Filled.Apps,
-                    label = "应用",
+                    label = stringResource(R.string.tab_apps),
                     selected = selectedTab == MainTab.APPS,
-                    onClick = { onTabSelected(MainTab.APPS) }
+                    onClick = {
+                        interactionTick++
+                        onTabSelected(MainTab.APPS)
+                    }
                 )
                 AppleBottomBarItem(
                     icon = Icons.Filled.Extension,
-                    label = "模块",
+                    label = stringResource(R.string.tab_modules),
                     selected = selectedTab == MainTab.MODULES,
-                    onClick = { onTabSelected(MainTab.MODULES) }
+                    onClick = {
+                        interactionTick++
+                        onTabSelected(MainTab.MODULES)
+                    }
                 )
                 AppleBottomBarItem(
                     icon = Icons.Filled.Settings,
-                    label = "设置",
+                    label = stringResource(R.string.tab_settings),
                     selected = selectedTab == MainTab.SETTINGS,
-                    onClick = { onTabSelected(MainTab.SETTINGS) }
+                    onClick = {
+                        interactionTick++
+                        onTabSelected(MainTab.SETTINGS)
+                    }
                 )
             }
         }
@@ -642,22 +763,39 @@ private fun TopTitleRow(
     descending: Boolean,
     onDescendingChange: (Boolean) -> Unit
 ) {
-    Row(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 14.dp, end = 14.dp, top = 2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+            .padding(horizontal = 12.dp, vertical = 2.dp),
+        shape = RoundedCornerShape(24.dp),
+        color = Color.Transparent,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
     ) {
-        Text(
-            text = "RootDeck",
-            color = MaterialTheme.colorScheme.onBackground,
-            fontWeight = FontWeight.Bold,
-            fontSize = 19.sp,
-            maxLines = 1
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .blur(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) 1.dp else 0.dp)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.70f),
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.42f)
+                        )
+                    )
+                )
+                .padding(start = 14.dp, end = 14.dp, top = 10.dp, bottom = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "RootDeck",
+                color = MaterialTheme.colorScheme.onBackground,
+                fontWeight = FontWeight.Bold,
+                fontSize = 19.sp,
+                maxLines = 1
+            )
 
-        Box {
+            Box {
             Surface(
                 modifier = Modifier
                     .size(46.dp)
@@ -673,7 +811,7 @@ private fun TopTitleRow(
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = Icons.Rounded.Menu,
-                        contentDescription = "菜单",
+                        contentDescription = stringResource(R.string.menu),
                         tint = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.size(19.dp)
                     )
@@ -753,6 +891,7 @@ private fun TopTitleRow(
                 )
             }
         }
+        }
     }
 }
 
@@ -810,7 +949,7 @@ private fun SearchBar(
         ) {
             Icon(
                 imageVector = Icons.Outlined.Search,
-                contentDescription = "搜索",
+                contentDescription = stringResource(R.string.search),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp)
             )
@@ -835,7 +974,7 @@ private fun SearchBar(
                         Box(contentAlignment = Alignment.CenterStart) {
                             if (keyword.isBlank()) {
                                 Text(
-                                    text = "搜索",
+                                    text = stringResource(R.string.search),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontSize = 14.sp,
                                     lineHeight = 18.sp
@@ -847,7 +986,7 @@ private fun SearchBar(
                 )
                 if (keyword.isNotBlank()) {
                     Text(
-                        text = "清除",
+                        text = stringResource(R.string.clear),
                         color = MaterialTheme.colorScheme.primary,
                         fontSize = 12.sp,
                         modifier = Modifier.clickable {
