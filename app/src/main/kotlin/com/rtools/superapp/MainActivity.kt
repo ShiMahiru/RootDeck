@@ -162,7 +162,7 @@ private fun MainRootScreen(packageManager: PackageManager) {
     var selectedTab by rememberSaveable { mutableStateOf(MainTab.APPS) }
     var keyword by rememberSaveable { mutableStateOf("") }
     var showSystemApps by rememberSaveable {
-        mutableStateOf(prefs.getBoolean("apps_show_system", true))
+        mutableStateOf(prefs.getBoolean("apps_show_system", false))
     }
     var sortModeName by rememberSaveable {
         mutableStateOf(prefs.getString("apps_sort_mode", SortMode.INSTALL_TIME.name) ?: SortMode.INSTALL_TIME.name)
@@ -467,12 +467,6 @@ private fun MiuiAppManagerScreen(
     LaunchedEffect(keyword, showSystemApps, sortMode, descending, filteredApps.size) {
         if (!loading && filteredApps.isNotEmpty()) {
             listState.scrollToItem(0)
-        }
-    }
-
-    LaunchedEffect(loading, apps.size, filteredApps.size, showSystemApps, keyword) {
-        if (!loading && keyword.isBlank() && !showSystemApps && apps.isNotEmpty() && filteredApps.isEmpty()) {
-            onShowSystemAppsChange(true)
         }
     }
 
@@ -1067,14 +1061,16 @@ private suspend fun loadInstalledApps(packageManager: PackageManager): List<Inst
                 }
 
                 val flags = appInfo.flags
-                val isSystemApp = (flags and ApplicationInfo.FLAG_SYSTEM) != 0 || (flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
+                val isSystemApp = (flags and ApplicationInfo.FLAG_SYSTEM) != 0
+                val isUpdatedSystemApp = (flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
+                val treatAsSystem = isSystemApp && !isUpdatedSystemApp
 
                 InstalledAppItem(
                     appName = packageManager.getApplicationLabel(appInfo)?.toString().orEmpty()
                         .ifBlank { packageName },
                     packageName = packageName,
                     icon = runCatching { packageManager.getApplicationIcon(appInfo) }.getOrNull(),
-                    isSystem = isSystemApp,
+                    isSystem = treatAsSystem,
                     sizeBytes = File(appInfo.sourceDir ?: "").takeIf { it.exists() }?.length() ?: 0L,
                     firstInstallTime = packageInfo.firstInstallTime,
                     lastUpdateTime = packageInfo.lastUpdateTime
