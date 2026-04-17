@@ -88,6 +88,13 @@ APP_BASE_NAME=${0##*/}
 # Discard cd standard output in case $CDPATH is set (https://github.com/gradle/gradle/issues/25036)
 APP_HOME=$( cd -P "${APP_HOME:-./}" > /dev/null && printf '%s\n' "$PWD" ) || exit
 
+# Bootstrap Android SDK in CI/container environments where sdk.dir/ANDROID_HOME is absent.
+if [ -z "${ANDROID_HOME:-}" ] && [ -z "${ANDROID_SDK_ROOT:-}" ] && [ -x "$APP_HOME/scripts/ensure-android-sdk.sh" ]; then
+    BOOTSTRAPPED_SDK=$("$APP_HOME/scripts/ensure-android-sdk.sh" "$APP_HOME/.android-sdk" | tail -n 1)
+    export ANDROID_HOME="$BOOTSTRAPPED_SDK"
+    export ANDROID_SDK_ROOT="$BOOTSTRAPPED_SDK"
+fi
+
 # Use the maximum available, or set MAX_FD != -1 to use that value.
 MAX_FD=maximum
 
