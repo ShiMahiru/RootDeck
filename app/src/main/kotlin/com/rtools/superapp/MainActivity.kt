@@ -151,7 +151,7 @@ private fun MainRootScreen(packageManager: PackageManager) {
     var selectedTab by rememberSaveable { mutableStateOf(MainTab.APPS) }
     var keyword by rememberSaveable { mutableStateOf("") }
     var showSystemApps by rememberSaveable {
-        mutableStateOf(prefs.getBoolean("apps_show_system", false))
+        mutableStateOf(prefs.getBoolean("apps_show_system", true))
     }
     var sortModeName by rememberSaveable {
         mutableStateOf(prefs.getString("apps_sort_mode", SortMode.INSTALL_TIME.name) ?: SortMode.INSTALL_TIME.name)
@@ -681,10 +681,10 @@ private fun TopTitleRow(
                 onDismissRequest = { onMainMenuExpandedChange(false) },
                 modifier = Modifier.width(184.dp),
                 offset = DpOffset(x = 0.dp, y = 8.dp),
-                shape = RoundedCornerShape(18.dp),
+                shape = RoundedCornerShape(0.dp),
                 containerColor = MaterialTheme.colorScheme.surface,
                 tonalElevation = 0.dp,
-                shadowElevation = 6.dp,
+                shadowElevation = 0.dp,
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             ) {
                 DropdownMenuItem(
@@ -716,10 +716,10 @@ private fun TopTitleRow(
                 onDismissRequest = { onSortMenuExpandedChange(false) },
                 modifier = Modifier.width(194.dp),
                 offset = DpOffset(x = 0.dp, y = 8.dp),
-                shape = RoundedCornerShape(18.dp),
+                shape = RoundedCornerShape(0.dp),
                 containerColor = MaterialTheme.colorScheme.surface,
                 tonalElevation = 0.dp,
-                shadowElevation = 6.dp,
+                shadowElevation = 0.dp,
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             ) {
                 MenuItemRow(
