@@ -1,6 +1,7 @@
 package com.rtools.superapp
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,6 +38,16 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+
+@Composable
+private fun Modifier.noRippleClickable(onClick: () -> Unit): Modifier {
+    val interactionSource = remember { MutableInteractionSource() }
+    return clickable(
+        interactionSource = interactionSource,
+        indication = null,
+        onClick = onClick
+    )
+}
 
 @Composable
 fun SettingsScreen(
@@ -87,7 +98,7 @@ fun SettingsScreen(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable { themeMenuExpanded = true }
+                                    .noRippleClickable { themeMenuExpanded = true }
                                     .padding(horizontal = 18.dp, vertical = 18.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween
@@ -113,28 +124,33 @@ fun SettingsScreen(
                                 }
                             }
 
-                            DropdownMenu(
-                                expanded = themeMenuExpanded,
-                                onDismissRequest = { themeMenuExpanded = false },
-                                modifier = Modifier.width(160.dp),
-                                offset = DpOffset(x = 180.dp, y = 0.dp),
-                                shape = RoundedCornerShape(16.dp),
-                                containerColor = MaterialTheme.colorScheme.surface
+                            Box(
+                                modifier = Modifier.fillMaxWidth(),
+                                contentAlignment = Alignment.TopEnd
                             ) {
-                                AppThemeMode.values().forEach { mode ->
-                                    DropdownMenuItem(
-                                        text = {
-                                            Text(
-                                                text = mode.label,
-                                                color = if (themeMode == mode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground,
-                                                fontSize = 15.sp
-                                            )
-                                        },
-                                        onClick = {
-                                            onThemeModeChange(mode)
-                                            themeMenuExpanded = false
-                                        }
-                                    )
+                                DropdownMenu(
+                                    expanded = themeMenuExpanded,
+                                    onDismissRequest = { themeMenuExpanded = false },
+                                    modifier = Modifier.width(160.dp),
+                                    offset = DpOffset(x = 0.dp, y = 0.dp),
+                                    shape = RoundedCornerShape(16.dp),
+                                    containerColor = MaterialTheme.colorScheme.surface
+                                ) {
+                                    AppThemeMode.values().forEach { mode ->
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(
+                                                    text = mode.label,
+                                                    color = if (themeMode == mode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground,
+                                                    fontSize = 15.sp
+                                                )
+                                            },
+                                            onClick = {
+                                                onThemeModeChange(mode)
+                                                themeMenuExpanded = false
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -149,7 +165,7 @@ fun SettingsScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { onFloatingBottomBarChange(!floatingBottomBar) }
+                                .noRippleClickable { onFloatingBottomBarChange(!floatingBottomBar) }
                                 .padding(horizontal = 18.dp, vertical = 10.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween

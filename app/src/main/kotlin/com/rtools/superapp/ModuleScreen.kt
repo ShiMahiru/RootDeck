@@ -6,6 +6,7 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -64,6 +65,16 @@ private data class ModuleItem(
     val author: String,
     val version: String
 )
+
+@Composable
+private fun Modifier.noRippleClickable(onClick: () -> Unit): Modifier {
+    val interactionSource = remember { MutableInteractionSource() }
+    return clickable(
+        interactionSource = interactionSource,
+        indication = null,
+        onClick = onClick
+    )
+}
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -195,7 +206,7 @@ fun ModuleScreen(bottomPadding: Dp = 14.dp) {
                         Surface(
                             modifier = Modifier
                                 .size(46.dp)
-                                .clickable { menuExpanded = true },
+                                .noRippleClickable { menuExpanded = true },
                             shape = androidx.compose.foundation.shape.CircleShape,
                             color = MaterialTheme.colorScheme.surfaceVariant,
                             tonalElevation = 0.dp,
@@ -281,7 +292,7 @@ fun ModuleScreen(bottomPadding: Dp = 14.dp) {
                                 Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clickable {
+                                        .noRippleClickable {
                                             try {
                                                 context.startActivity(
                                                     Intent(context, WebUIActivity::class.java)
@@ -347,23 +358,25 @@ private fun ModuleMenuItem(
 ) {
     DropdownMenuItem(
         text = {
-            Text(
-                text = text,
-                color = MaterialTheme.colorScheme.onBackground,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium
-            )
-        },
-        trailingIcon = {
-            if (selected) {
-                Icon(
-                    imageVector = Icons.Filled.Check,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = text,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium
                 )
+                if (selected) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(
+                        imageVector = Icons.Filled.Check,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
         },
+        trailingIcon = null,
         onClick = onClick
     )
 }

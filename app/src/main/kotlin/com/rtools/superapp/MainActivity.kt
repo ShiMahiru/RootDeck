@@ -94,6 +94,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import androidx.compose.foundation.interaction.MutableInteractionSource
 
 data class InstalledAppItem(
     val appName: String,
@@ -142,6 +143,16 @@ enum class AppThemeMode(val label: String) {
 }
 
 @Composable
+private fun Modifier.noRippleClickable(onClick: () -> Unit): Modifier {
+    val interactionSource = remember { MutableInteractionSource() }
+    return clickable(
+        interactionSource = interactionSource,
+        indication = null,
+        onClick = onClick
+    )
+}
+
+@Composable
 private fun MainRootScreen(packageManager: PackageManager) {
     val context = LocalContext.current
     val prefs = remember {
@@ -151,7 +162,7 @@ private fun MainRootScreen(packageManager: PackageManager) {
     var selectedTab by rememberSaveable { mutableStateOf(MainTab.APPS) }
     var keyword by rememberSaveable { mutableStateOf("") }
     var showSystemApps by rememberSaveable {
-        mutableStateOf(prefs.getBoolean("apps_show_system", true))
+        mutableStateOf(prefs.getBoolean("apps_show_system", false))
     }
     var sortModeName by rememberSaveable {
         mutableStateOf(prefs.getString("apps_sort_mode", SortMode.INSTALL_TIME.name) ?: SortMode.INSTALL_TIME.name)
@@ -275,6 +286,7 @@ private fun MainRootScreen(packageManager: PackageManager) {
     }
 }
 
+
 @Composable
 private fun FloatingBottomBar(
     selectedTab: MainTab,
@@ -341,7 +353,7 @@ private fun AppleBottomBarItem(
     Column(
         modifier = Modifier
             .clip(RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick)
+            .noRippleClickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -527,7 +539,12 @@ private fun MiuiAppManagerScreen(
                     }
 
                     filteredApps.isEmpty() -> {
-                        CenterStateText(if (keyword.isBlank()) "没有可显示的应用" else "没有匹配的应用")
+                        val emptyMessage = when {
+                            keyword.isNotBlank() -> "没有匹配的应用"
+                            !showSystemApps && apps.isNotEmpty() -> "当前仅显示第三方应用，可在右上角菜单开启“显示系统应用”"
+                            else -> "没有可显示的应用"
+                        }
+                        CenterStateText(emptyMessage)
                     }
 
                     else -> {
@@ -657,7 +674,7 @@ private fun TopTitleRow(
             Surface(
                 modifier = Modifier
                     .size(46.dp)
-                    .clickable {
+                    .noRippleClickable {
                         onSortMenuExpandedChange(false)
                         onMainMenuExpandedChange(true)
                     },
@@ -762,8 +779,7 @@ private fun MenuItemRow(
         text = {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = text,
@@ -772,6 +788,7 @@ private fun MenuItemRow(
                     fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
                 )
                 if (selected) {
+                    Spacer(modifier = Modifier.width(8.dp))
                     Icon(
                         imageVector = Icons.Filled.Check,
                         contentDescription = null,
@@ -846,7 +863,7 @@ private fun SearchBar(
                         text = "清除",
                         color = MaterialTheme.colorScheme.primary,
                         fontSize = 12.sp,
-                        modifier = Modifier.clickable {
+                        modifier = Modifier.noRippleClickable {
                             onKeywordChange("")
                             focusManager.clearFocus()
                         }
@@ -881,7 +898,7 @@ private fun AppItemCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .noRippleClickable(onClick = onClick),
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
@@ -1049,14 +1066,16 @@ private suspend fun loadInstalledApps(packageManager: PackageManager): List<Inst
                 }
 
                 val flags = appInfo.flags
-                val isSystemApp = (flags and ApplicationInfo.FLAG_SYSTEM) != 0 || (flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
+                val isSystemApp = (flags and ApplicationInfo.FLAG_SYSTEM) != 0
+                val isUpdatedSystemApp = (flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
+                val treatAsSystem = isSystemApp && !isUpdatedSystemApp
 
                 InstalledAppItem(
                     appName = packageManager.getApplicationLabel(appInfo)?.toString().orEmpty()
                         .ifBlank { packageName },
                     packageName = packageName,
                     icon = runCatching { packageManager.getApplicationIcon(appInfo) }.getOrNull(),
-                    isSystem = isSystemApp,
+                    isSystem = treatAsSystem,
                     sizeBytes = File(appInfo.sourceDir ?: "").takeIf { it.exists() }?.length() ?: 0L,
                     firstInstallTime = packageInfo.firstInstallTime,
                     lastUpdateTime = packageInfo.lastUpdateTime
