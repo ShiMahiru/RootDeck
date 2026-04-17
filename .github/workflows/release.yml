@@ -1,7 +1,10 @@
 name: Build and Draft Signed Release
 
 on:
-  # 仅允许在 GitHub 网页端手动点击 Run workflow 触发
+  push:
+    tags:
+      - 'v*'
+  # 也支持在 GitHub 网页端手动点击 Run workflow 触发
   workflow_dispatch:
     inputs:
       version:
@@ -44,8 +47,13 @@ jobs:
         env:
           BUILD_TOOLS_VERSION: '34.0.0'
 
-      - name: 6. 使用手动输入版本号
-        run: echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+      - name: 6. 确定最终版本号
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "VERSION=${{ github.event.inputs.version }}" >> "$GITHUB_ENV"
+          else
+            echo "VERSION=${{ github.ref_name }}" >> "$GITHUB_ENV"
+          fi
 
       - name: 7. 重命名已签名的 APK
         run: mv ${{ steps.sign_app.outputs.signedReleaseFile }} RootDeck-${{ env.VERSION }}-signed.apk
