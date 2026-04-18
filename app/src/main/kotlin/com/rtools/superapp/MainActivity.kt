@@ -9,9 +9,9 @@ import android.os.Build
 import android.os.Bundle
 import android.widget.ImageView
 import android.widget.Toast
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
@@ -116,10 +116,10 @@ data class InstalledAppItem(
     val lastUpdateTime: Long
 )
 
-enum class SortMode(val label: String) {
-    APP_NAME("应用名称"),
-    PACKAGE_SIZE("安装包大小"),
-    INSTALL_TIME("安装时间")
+enum class SortMode {
+    APP_NAME,
+    PACKAGE_SIZE,
+    INSTALL_TIME
 }
 
 private enum class RootGrantState {
@@ -129,7 +129,7 @@ private enum class RootGrantState {
     UNAVAILABLE
 }
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -146,10 +146,10 @@ private enum class MainTab {
     SETTINGS
 }
 
-enum class AppThemeMode(val label: String) {
-    SYSTEM("跟随系统"),
-    LIGHT("浅色"),
-    DARK("深色")
+enum class AppThemeMode {
+    SYSTEM,
+    LIGHT,
+    DARK
 }
 
 enum class AppLanguage(val tag: String) {
@@ -224,13 +224,6 @@ private fun MainRootScreen(packageManager: PackageManager) {
         if (appLanguage == value) return
         appLanguageName = value.name
         prefs.edit().putString("app_language", value.name).apply()
-        val locales = when (value) {
-            AppLanguage.SYSTEM -> androidx.core.os.LocaleListCompat.getEmptyLocaleList()
-            AppLanguage.ZH_CN -> androidx.core.os.LocaleListCompat.forLanguageTags("zh-CN")
-            AppLanguage.EN -> androidx.core.os.LocaleListCompat.forLanguageTags("en")
-        }
-        androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(locales)
-        (context as? ComponentActivity)?.recreate()
     }
 
     LaunchedEffect(appLanguage) {
@@ -526,7 +519,7 @@ private fun MiuiAppManagerScreen(
             apps.clear()
             apps.addAll(result)
         } catch (e: Exception) {
-            loadError = e.message ?: "加载失败"
+            loadError = e.message
             apps.clear()
         }
     }
@@ -635,11 +628,17 @@ private fun MiuiAppManagerScreen(
                     }
 
                     loadError != null -> {
-                        CenterStateText(loadError ?: "加载失败")
+                        CenterStateText(loadError ?: stringResource(R.string.load_failed))
                     }
 
                     filteredApps.isEmpty() -> {
-                        CenterStateText(if (keyword.isBlank()) "没有可显示的应用" else "没有匹配的应用")
+                        CenterStateText(
+                            if (keyword.isBlank()) {
+                                stringResource(R.string.apps_empty)
+                            } else {
+                                stringResource(R.string.apps_no_match)
+                            }
+                        )
                     }
 
                     else -> {
@@ -678,7 +677,7 @@ private fun MiuiAppManagerScreen(
                     containerColor = MaterialTheme.colorScheme.surface,
                     title = {
                         Text(
-                            text = "抱歉，没有获取到ROOT权限",
+                            text = stringResource(R.string.root_permission_missing_title),
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onBackground
@@ -686,7 +685,7 @@ private fun MiuiAppManagerScreen(
                     },
                     text = {
                         Text(
-                            text = "本应用需要超级用户权限才能正常工作。",
+                            text = stringResource(R.string.root_permission_missing_message),
                             fontSize = 16.sp,
                             color = MaterialTheme.colorScheme.onBackground
                         )
@@ -698,7 +697,11 @@ private fun MiuiAppManagerScreen(
                             android.os.Process.killProcess(android.os.Process.myPid())
                             kotlin.system.exitProcess(0)
                         }) {
-                            Text("确认", fontSize = 17.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                stringResource(R.string.confirm),
+                                fontSize = 17.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     },
                     confirmButton = {
@@ -707,7 +710,11 @@ private fun MiuiAppManagerScreen(
                                 ensureManagerRoot(force = true) 
                             }
                         }) {
-                            Text("重试", fontSize = 17.sp, color = MaterialTheme.colorScheme.primary)
+                            Text(
+                                stringResource(R.string.retry),
+                                fontSize = 17.sp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
                         }
                     }
                 )
@@ -720,14 +727,22 @@ private fun MiuiAppManagerScreen(
                     onDeny = {
                         coroutineScope.launch {
                             setAppRootPermission(app.packageName, grant = false)
-                            Toast.makeText(context, "已撤销 ${app.appName}", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.toast_root_revoked, app.appName),
+                                Toast.LENGTH_SHORT
+                            ).show()
                             selectedApp = null
                         }
                     },
                     onAllow = {
                         coroutineScope.launch {
                             setAppRootPermission(app.packageName, grant = true)
-                            Toast.makeText(context, "已授予 ${app.appName} Root 权限", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.toast_root_granted, app.appName),
+                                Toast.LENGTH_SHORT
+                            ).show()
                             selectedApp = null
                         }
                     }
@@ -819,7 +834,7 @@ private fun TopTitleRow(
                 DropdownMenuItem(
                     text = {
                         Text(
-                            text = "排序方式",
+                            text = stringResource(R.string.sort_mode),
                             color = MaterialTheme.colorScheme.onBackground,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium
@@ -832,7 +847,7 @@ private fun TopTitleRow(
                 )
 
                 MenuItemRow(
-                    text = "显示系统应用",
+                    text = stringResource(R.string.show_system_apps),
                     selected = showSystemApps,
                     onClick = {
                         onShowSystemAppsChange(!showSystemApps)
@@ -852,17 +867,17 @@ private fun TopTitleRow(
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             ) {
                 MenuItemRow(
-                    text = SortMode.APP_NAME.label,
+                    text = stringResource(R.string.sort_app_name),
                     selected = sortMode == SortMode.APP_NAME,
                     onClick = { onSortModeChange(SortMode.APP_NAME) }
                 )
                 MenuItemRow(
-                    text = SortMode.PACKAGE_SIZE.label,
+                    text = stringResource(R.string.sort_package_size),
                     selected = sortMode == SortMode.PACKAGE_SIZE,
                     onClick = { onSortModeChange(SortMode.PACKAGE_SIZE) }
                 )
                 MenuItemRow(
-                    text = SortMode.INSTALL_TIME.label,
+                    text = stringResource(R.string.sort_install_time),
                     selected = sortMode == SortMode.INSTALL_TIME,
                     onClick = { onSortModeChange(SortMode.INSTALL_TIME) }
                 )
@@ -872,7 +887,7 @@ private fun TopTitleRow(
                     color = MaterialTheme.colorScheme.outlineVariant
                 )
                 MenuItemRow(
-                    text = "倒序排列",
+                    text = stringResource(R.string.sort_descending),
                     selected = descending,
                     onClick = { onDescendingChange(!descending) }
                 )
@@ -1102,7 +1117,7 @@ private fun RootActionDialog(
         },
         text = {
             Text(
-                text = "是否允许该应用获取超级用户权限？",
+                text = stringResource(R.string.root_action_message),
                 fontSize = 16.sp,
                 color = MaterialTheme.colorScheme.onBackground
             )
@@ -1110,7 +1125,7 @@ private fun RootActionDialog(
         dismissButton = {
             TextButton(onClick = onDeny) {
                 Text(
-                    text = "撤销",
+                    text = stringResource(R.string.deny),
                     fontSize = 17.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1119,7 +1134,7 @@ private fun RootActionDialog(
         confirmButton = {
             TextButton(onClick = onAllow) {
                 Text(
-                    text = "允许",
+                    text = stringResource(R.string.allow),
                     fontSize = 17.sp,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold

@@ -20,4 +20,26 @@
     <string name="lang_system">System default</string>
     <string name="lang_zh_cn">简体中文</string>
     <string name="lang_en">English</string>
+
+    <string name="sort_mode">Sort by</string>
+    <string name="show_system_apps">Show system apps</string>
+    <string name="sort_app_name">App name</string>
+    <string name="sort_package_size">Package size</string>
+    <string name="sort_install_time">Install time</string>
+    <string name="sort_descending">Descending order</string>
+
+    <string name="load_failed">Load failed</string>
+    <string name="apps_empty">No apps to display</string>
+    <string name="apps_no_match">No matching apps</string>
+
+    <string name="root_permission_missing_title">Sorry, root access was not granted</string>
+    <string name="root_permission_missing_message">This app requires superuser privileges to work properly.</string>
+    <string name="confirm">Confirm</string>
+    <string name="retry">Retry</string>
+    <string name="toast_root_revoked">Revoked %1$s</string>
+    <string name="toast_root_granted">Granted root access to %1$s</string>
+
+    <string name="root_action_message">Allow this app to obtain superuser privileges?</string>
+    <string name="deny">Deny</string>
+    <string name="allow">Allow</string>
 </resources>

@@ -20,4 +20,26 @@
     <string name="lang_system">跟随系统</string>
     <string name="lang_zh_cn">简体中文</string>
     <string name="lang_en">English</string>
+
+    <string name="sort_mode">排序方式</string>
+    <string name="show_system_apps">显示系统应用</string>
+    <string name="sort_app_name">应用名称</string>
+    <string name="sort_package_size">安装包大小</string>
+    <string name="sort_install_time">安装时间</string>
+    <string name="sort_descending">倒序排列</string>
+
+    <string name="load_failed">加载失败</string>
+    <string name="apps_empty">没有可显示的应用</string>
+    <string name="apps_no_match">没有匹配的应用</string>
+
+    <string name="root_permission_missing_title">抱歉，没有获取到ROOT权限</string>
+    <string name="root_permission_missing_message">本应用需要超级用户权限才能正常工作。</string>
+    <string name="confirm">确认</string>
+    <string name="retry">重试</string>
+    <string name="toast_root_revoked">已撤销 %1$s</string>
+    <string name="toast_root_granted">已授予 %1$s Root 权限</string>
+
+    <string name="root_action_message">是否允许该应用获取超级用户权限？</string>
+    <string name="deny">撤销</string>
+    <string name="allow">允许</string>
 </resources>
