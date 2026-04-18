@@ -1,0 +1,23 @@
+<resources>
+    <string name="app_name">RootDeck</string>
+
+    <string name="tab_apps">应用</string>
+    <string name="tab_modules">模块</string>
+    <string name="tab_settings">设置</string>
+    <string name="menu">菜单</string>
+    <string name="search">搜索</string>
+    <string name="clear">清除</string>
+
+    <string name="settings_title">设置</string>
+    <string name="settings_theme">主题</string>
+    <string name="settings_floating_bar">悬浮底栏</string>
+    <string name="settings_language">语言</string>
+
+    <string name="theme_system">跟随系统</string>
+    <string name="theme_light">浅色</string>
+    <string name="theme_dark">深色</string>
+
+    <string name="lang_system">跟随系统</string>
+    <string name="lang_zh_cn">简体中文</string>
+    <string name="lang_en">English</string>
+</resources>
