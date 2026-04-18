@@ -35,7 +35,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -135,7 +134,6 @@ fun SettingsScreen(
                                 expanded = themeMenuExpanded,
                                 onDismissRequest = { themeMenuExpanded = false },
                                 modifier = Modifier.width(160.dp),
-                                offset = DpOffset(x = 180.dp, y = 0.dp),
                                 shape = RoundedCornerShape(16.dp),
                                 containerColor = MaterialTheme.colorScheme.surface
                             ) {
@@ -197,7 +195,6 @@ fun SettingsScreen(
                                 expanded = languageMenuExpanded,
                                 onDismissRequest = { languageMenuExpanded = false },
                                 modifier = Modifier.width(180.dp),
-                                offset = DpOffset(x = 160.dp, y = 0.dp),
                                 shape = RoundedCornerShape(16.dp),
                                 containerColor = MaterialTheme.colorScheme.surface
                             ) {

@@ -1,6 +1,5 @@
 package com.rtools.superapp
 
-import android.app.Activity
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
@@ -102,7 +101,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.rtools.superapp.ui.theme.ComposeEmptyActivityTheme
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -223,8 +221,16 @@ private fun MainRootScreen(packageManager: PackageManager) {
     }
 
     fun saveAppLanguage(value: AppLanguage) {
+        if (appLanguage == value) return
         appLanguageName = value.name
         prefs.edit().putString("app_language", value.name).apply()
+        val locales = when (value) {
+            AppLanguage.SYSTEM -> androidx.core.os.LocaleListCompat.getEmptyLocaleList()
+            AppLanguage.ZH_CN -> androidx.core.os.LocaleListCompat.forLanguageTags("zh-CN")
+            AppLanguage.EN -> androidx.core.os.LocaleListCompat.forLanguageTags("en")
+        }
+        androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(locales)
+        (context as? ComponentActivity)?.recreate()
     }
 
     LaunchedEffect(appLanguage) {
@@ -323,30 +329,14 @@ private fun FloatingBottomBar(
     val coroutineScope = rememberCoroutineScope()
     val dragOffsetX = remember { Animatable(0f) }
     var pressed by remember { mutableStateOf(false) }
-    var autoHidden by remember { mutableStateOf(false) }
-    var interactionTick by remember { mutableIntStateOf(0) }
 
     val scale by animateFloatAsState(
         targetValue = if (pressed) 0.96f else 1f,
         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
         label = "floating-dock-scale"
     )
-    val alpha by animateFloatAsState(
-        targetValue = if (autoHidden) 0.30f else 1f,
-        animationSpec = spring(stiffness = Spring.StiffnessLow),
-        label = "floating-dock-alpha"
-    )
-    val hiddenOffset by animateFloatAsState(
-        targetValue = if (autoHidden) 84f else 0f,
-        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-        label = "floating-dock-offset"
-    )
-
-    LaunchedEffect(interactionTick) {
-        autoHidden = false
-        delay(2600)
-        autoHidden = true
-    }
+    val alpha by animateFloatAsState(targetValue = 1f, label = "floating-dock-alpha")
+    val hiddenOffset by animateFloatAsState(targetValue = 0f, label = "floating-dock-offset")
 
     Box(
         modifier = modifier
@@ -370,8 +360,8 @@ private fun FloatingBottomBar(
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.74f),
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.42f)
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.88f)
                             )
                         )
                     )
@@ -384,7 +374,6 @@ private fun FloatingBottomBar(
                         detectDragGestures(
                             onDragStart = {
                                 pressed = true
-                                interactionTick++
                             },
                             onDragEnd = {
                                 pressed = false
@@ -420,7 +409,6 @@ private fun FloatingBottomBar(
                     label = stringResource(R.string.tab_apps),
                     selected = selectedTab == MainTab.APPS,
                     onClick = {
-                        interactionTick++
                         onTabSelected(MainTab.APPS)
                     }
                 )
@@ -429,7 +417,6 @@ private fun FloatingBottomBar(
                     label = stringResource(R.string.tab_modules),
                     selected = selectedTab == MainTab.MODULES,
                     onClick = {
-                        interactionTick++
                         onTabSelected(MainTab.MODULES)
                     }
                 )
@@ -438,7 +425,6 @@ private fun FloatingBottomBar(
                     label = stringResource(R.string.tab_settings),
                     selected = selectedTab == MainTab.SETTINGS,
                     onClick = {
-                        interactionTick++
                         onTabSelected(MainTab.SETTINGS)
                     }
                 )
