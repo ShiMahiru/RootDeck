@@ -58,6 +58,7 @@ fun SettingsScreen(
         AppThemeMode.DARK -> stringResource(R.string.theme_dark)
     }
 
+
     fun languageLabel(language: AppLanguage): String = when (language) {
         AppLanguage.SYSTEM -> stringResource(R.string.lang_system)
         AppLanguage.ZH_CN -> stringResource(R.string.lang_zh_cn)
