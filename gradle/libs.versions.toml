@@ -10,7 +10,6 @@ libsu = "6.0.0"
 appcompat = "1.7.1"
 miuix = "0.4.9"
 
-appcompat = "1.7.1"
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
