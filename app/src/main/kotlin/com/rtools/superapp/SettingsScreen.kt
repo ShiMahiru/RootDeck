@@ -52,6 +52,7 @@ fun SettingsScreen(
     var themeMenuExpanded by remember { mutableStateOf(false) }
     var languageMenuExpanded by remember { mutableStateOf(false) }
 
+
     fun themeLabel(mode: AppThemeMode): String = when (mode) {
         AppThemeMode.SYSTEM -> stringResource(R.string.theme_system)
         AppThemeMode.LIGHT -> stringResource(R.string.theme_light)
