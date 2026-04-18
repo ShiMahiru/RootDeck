@@ -8,7 +8,6 @@ composeBom = "2025.10.01"
 webkit = "1.14.0"
 libsu = "6.0.0"
 appcompat = "1.7.1"
-miuix = "0.4.9"
 
 
 [plugins]
