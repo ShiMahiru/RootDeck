@@ -53,6 +53,7 @@ fun SettingsScreen(
     var languageMenuExpanded by remember { mutableStateOf(false) }
 
 
+    @Composable
     fun themeLabel(mode: AppThemeMode): String = when (mode) {
         AppThemeMode.SYSTEM -> stringResource(R.string.theme_system)
         AppThemeMode.LIGHT -> stringResource(R.string.theme_light)
@@ -60,6 +61,7 @@ fun SettingsScreen(
     }
 
 
+    @Composable
     fun languageLabel(language: AppLanguage): String = when (language) {
         AppLanguage.SYSTEM -> stringResource(R.string.lang_system)
         AppLanguage.ZH_CN -> stringResource(R.string.lang_zh_cn)
