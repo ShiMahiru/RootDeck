@@ -159,18 +159,43 @@ jobs:
       - name: 5. 赋予 Gradle 执行权限
         run: chmod +x gradlew
 
-      - name: 6. 安装 Android Build Tools
+      - name: 6. 检查 Android Build Tools
         shell: bash
         run: |
           set -euo pipefail
 
-          SDKMANAGER="${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
-
-          if [ -x "$SDKMANAGER" ]; then
-            yes | "$SDKMANAGER" "build-tools;35.0.0" >/dev/null
-          else
-            echo "::warning::未找到 sdkmanager，将使用 runner 已安装的 Android Build Tools"
+          if [ -z "${ANDROID_HOME:-}" ]; then
+            echo "::error::ANDROID_HOME 为空，无法找到 Android SDK"
+            exit 1
           fi
+
+          if [ ! -d "$ANDROID_HOME/build-tools" ]; then
+            echo "::error::未找到 Android Build Tools 目录：$ANDROID_HOME/build-tools"
+            exit 1
+          fi
+
+          echo "当前可用 Android Build Tools："
+          find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V
+
+          BUILD_TOOLS_DIR="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+
+          if [ -z "$BUILD_TOOLS_DIR" ]; then
+            echo "::error::未找到任何 Android Build Tools"
+            exit 1
+          fi
+
+          if [ ! -x "$BUILD_TOOLS_DIR/zipalign" ]; then
+            echo "::error::未找到 zipalign：$BUILD_TOOLS_DIR/zipalign"
+            exit 1
+          fi
+
+          if [ ! -x "$BUILD_TOOLS_DIR/apksigner" ]; then
+            echo "::error::未找到 apksigner：$BUILD_TOOLS_DIR/apksigner"
+            exit 1
+          fi
+
+          echo "BUILD_TOOLS_DIR=$BUILD_TOOLS_DIR" >> "$GITHUB_ENV"
+          echo "使用 Android Build Tools：$BUILD_TOOLS_DIR"
 
       - name: 7. 编译 Release 版 APK
         run: ./gradlew --no-daemon clean assembleRelease
@@ -183,19 +208,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          BUILD_TOOLS_DIR="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
           ZIPALIGN="${BUILD_TOOLS_DIR}/zipalign"
           APKSIGNER="${BUILD_TOOLS_DIR}/apksigner"
-
-          if [ ! -x "$ZIPALIGN" ]; then
-            echo "::error::未找到 zipalign"
-            exit 1
-          fi
-
-          if [ ! -x "$APKSIGNER" ]; then
-            echo "::error::未找到 apksigner"
-            exit 1
-          fi
 
           mapfile -t APK_FILES < <(find app/build/outputs/apk/release -type f -name "*.apk" | sort)
 
