@@ -1,6 +1,6 @@
 name: Build and Draft Signed Release
 
-于:
+on:
   push:
     tags:
       - 'v*'
