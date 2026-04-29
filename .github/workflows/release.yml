@@ -1,0 +1,138 @@
+name: Build and Draft Signed Release
+
+于:
+  push:
+    tags:
+      - 'v*'
+
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '请输入本次发布的版本号，例如: v1.1.0'
+        required: true
+        default: 'v1.1.0'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build signed release APK
+    runs-on: ubuntu-latest
+
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+    steps:
+      - name: 1. 检出代码
+        uses: actions/checkout@v4
+
+      - name: 2. 配置 JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: 3. 设置版本号
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${GITHUB_REF_NAME}"
+          fi
+
+          if [[ ! "$VERSION" =~ ^v[0-9]+(\.[0-9]+){1,3}(-[A-Za-z0-9._-]+)?$ ]]; then
+            echo "::error::版本号格式不正确：$VERSION，示例：v1.1.0"
+            exit 1
+          fi
+
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "RELEASE_APK_NAME=RootDeck-$VERSION-signed.apk" >> "$GITHUB_ENV"
+
+      - name: 4. 校验签名 Secrets
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          missing=0
+          for var in KEYSTORE_BASE64 KEY_ALIAS KEYSTORE_PASSWORD KEY_PASSWORD; do
+            if [ -z "${!var:-}" ]; then
+              echo "::error::缺少必填 Secret: $var"
+              missing=1
+            fi
+          done
+
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+          keystore_file="$(mktemp /tmp/rootdeck-keystore-XXXXXX.jks)"
+
+          if ! printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$keystore_file"; then
+            echo "::error::KEYSTORE_BASE64 不是有效的 Base64，请确认你上传的是 keystore 文件的 base64 内容。"
+            exit 1
+          fi
+
+          if ! keytool -list -keystore "$keystore_file" -storepass "$KEYSTORE_PASSWORD" > /tmp/rootdeck-keystore-list.txt 2>/tmp/rootdeck-keystore-error.txt; then
+            echo "::error::无法读取 keystore。请检查 KEYSTORE_BASE64 与 KEYSTORE_PASSWORD 是否匹配。"
+            cat /tmp/rootdeck-keystore-error.txt
+            exit 1
+          fi
+
+          if ! grep -F "$KEY_ALIAS" /tmp/rootdeck-keystore-list.txt >/dev/null; then
+            echo "::error::在 keystore 中未找到 KEY_ALIAS=$KEY_ALIAS，请确认别名正确。"
+            exit 1
+          fi
+
+      - name: 5. 赋予 Gradle 执行权限
+        run: chmod +x gradlew
+
+      - name: 6. 编译 Release 版 APK
+        run: ./gradlew --no-daemon clean assembleRelease
+
+      - name: 7. 自动签名 APK
+        uses: r0adkll/sign-android-release@v1
+        id: sign_app
+        with:
+          releaseDirectory: app/build/outputs/apk/release
+          signingKeyBase64: ${{ secrets.KEYSTORE_BASE64 }}
+          alias: ${{ secrets.KEY_ALIAS }}
+          keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword: ${{ secrets.KEY_PASSWORD }}
+        env:
+          BUILD_TOOLS_VERSION: '35.0.0'
+
+      - name: 8. 重命名已签名的 APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mv "${{ steps.sign_app.outputs.signedReleaseFile }}" "${RELEASE_APK_NAME}"
+          ls -lh "${RELEASE_APK_NAME}"
+
+      - name: 9. 上传 APK 到 Actions Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.RELEASE_APK_NAME }}
+          path: ${{ env.RELEASE_APK_NAME }}
+
+      - name: 10. 创建 GitHub Release 草稿
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.VERSION }}
+          target_commitish: ${{ github.sha }}
+          files: ${{ env.RELEASE_APK_NAME }}
+          draft: true
+          generate_release_notes: true
