@@ -15,6 +15,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "MiuiAppManager"
-
+rootProject.name = "RootDeck"
 include(":app")

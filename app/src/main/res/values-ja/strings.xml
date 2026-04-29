@@ -1,0 +1,65 @@
+<resources>
+    <string name="app_name">RootDeck</string>
+
+    <string name="tab_apps">アプリ</string>
+    <string name="tab_modules">モジュール</string>
+    <string name="tab_settings">設定</string>
+
+    <string name="action_menu">メニュー</string>
+    <string name="action_clear">クリア</string>
+    <string name="action_retry">再試行</string>
+    <string name="action_confirm">確認</string>
+    <string name="action_allow">許可</string>
+    <string name="action_deny">拒否</string>
+    <string name="action_open_failed">開けませんでした</string>
+
+    <string name="search_hint">アプリ名またはパッケージ名を検索</string>
+
+    <string name="menu_sort_mode">並び替え</string>
+    <string name="menu_show_system_apps">システムアプリを表示</string>
+    <string name="menu_descending">降順</string>
+
+    <string name="sort_app_name">アプリ名</string>
+    <string name="sort_package_size">パッケージサイズ</string>
+    <string name="sort_install_time">インストール日時</string>
+
+    <string name="label_system_app">システムアプリ</string>
+
+    <string name="state_load_failed">読み込みに失敗しました</string>
+    <string name="state_no_apps">表示できるアプリがありません</string>
+    <string name="state_no_match">一致する結果がありません</string>
+
+    <string name="root_permission_title">ROOT 権限を取得できませんでした</string>
+    <string name="root_permission_message">このアプリを正常に動作させるにはスーパーユーザー権限が必要です。</string>
+    <string name="root_permission_short">Root 権限を付与してください</string>
+    <string name="root_action_message">このアプリにスーパーユーザー権限を許可しますか？</string>
+    <string name="toast_root_revoked">%1$s の Root 権限を取り消しました</string>
+    <string name="toast_root_granted">%1$s に Root 権限を付与しました</string>
+
+    <string name="module_empty">利用可能なモジュールがありません</string>
+    <string name="module_enable_web_debugging">WebView デバッグを有効化</string>
+    <string name="module_show_disabled">無効なモジュールを表示</string>
+    <string name="module_author_format">作者：%1$s</string>
+    <string name="module_version_format">バージョン：%1$s</string>
+
+    <string name="setting_theme">テーマ</string>
+    <string name="setting_language">言語</string>
+    <string name="setting_floating_bar">フローティング下部バー</string>
+    <string name="setting_floating_bar_summary">ドラッグ、押下変形、自動非表示に対応したカプセル型ナビゲーションです。</string>
+    <string name="setting_realtime_blur">リアルタイムぼかし</string>
+    <string name="setting_realtime_blur_summary">トップバーとドックにライブ背景ぼかしを適用します。</string>
+    <string name="setting_liquid_glass">リキッドガラス</string>
+    <string name="setting_liquid_glass_summary">ハイライト、反射、色彩振動、ガラスレイヤーを有効にします。</string>
+    <string name="setting_requires_android_13">Android 13 以降が必要です。</string>
+    <string name="setting_about_title">FolkLite 風リファクタリング</string>
+    <string name="setting_about_summary">このバージョンでは MIUI / HyperOS のビジュアル言語を意識して UI を再構成し、リアルタイムぼかし、リキッドガラス、フローティングドック、多言語リソースを追加しています。</string>
+
+    <string name="theme_system">システムに従う</string>
+    <string name="theme_light">ライト</string>
+    <string name="theme_dark">ダーク</string>
+
+    <string name="language_system">システムに従う</string>
+    <string name="language_zh_cn">簡体字中国語</string>
+    <string name="language_en">English</string>
+    <string name="language_ja">日本語</string>
+</resources>

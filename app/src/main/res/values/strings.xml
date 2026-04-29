@@ -1,3 +1,65 @@
 <resources>
     <string name="app_name">RootDeck</string>
+
+    <string name="tab_apps">应用</string>
+    <string name="tab_modules">模块</string>
+    <string name="tab_settings">设置</string>
+
+    <string name="action_menu">菜单</string>
+    <string name="action_clear">清除</string>
+    <string name="action_retry">重试</string>
+    <string name="action_confirm">确认</string>
+    <string name="action_allow">允许</string>
+    <string name="action_deny">撤销</string>
+    <string name="action_open_failed">打开失败</string>
+
+    <string name="search_hint">搜索应用或包名</string>
+
+    <string name="menu_sort_mode">排序方式</string>
+    <string name="menu_show_system_apps">显示系统应用</string>
+    <string name="menu_descending">倒序排列</string>
+
+    <string name="sort_app_name">应用名称</string>
+    <string name="sort_package_size">安装包大小</string>
+    <string name="sort_install_time">安装时间</string>
+
+    <string name="label_system_app">系统应用</string>
+
+    <string name="state_load_failed">加载失败</string>
+    <string name="state_no_apps">没有可显示的应用</string>
+    <string name="state_no_match">没有匹配的结果</string>
+
+    <string name="root_permission_title">抱歉，没有获取到 ROOT 权限</string>
+    <string name="root_permission_message">本应用需要超级用户权限才能正常工作。</string>
+    <string name="root_permission_short">请授予 Root 权限</string>
+    <string name="root_action_message">是否允许该应用获取超级用户权限？</string>
+    <string name="toast_root_revoked">已撤销 %1$s 的 Root 权限</string>
+    <string name="toast_root_granted">已授予 %1$s Root 权限</string>
+
+    <string name="module_empty">无可用模块</string>
+    <string name="module_enable_web_debugging">启用 WebView 调试</string>
+    <string name="module_show_disabled">显示禁用模块</string>
+    <string name="module_author_format">作者：%1$s</string>
+    <string name="module_version_format">版本：%1$s</string>
+
+    <string name="setting_theme">主题</string>
+    <string name="setting_language">语言</string>
+    <string name="setting_floating_bar">悬浮底栏</string>
+    <string name="setting_floating_bar_summary">胶囊形导航栏，支持拖拽、按压形变与自动隐藏。</string>
+    <string name="setting_realtime_blur">实时模糊</string>
+    <string name="setting_realtime_blur_summary">为顶栏与导航栏启用实时背景模糊。</string>
+    <string name="setting_liquid_glass">液态玻璃</string>
+    <string name="setting_liquid_glass_summary">启用高光、反射、色彩振动与玻璃拟态层。</string>
+    <string name="setting_requires_android_13">需要 Android 13 及以上版本。</string>
+    <string name="setting_about_title">FolkLite 风格改造</string>
+    <string name="setting_about_summary">此版本围绕 MIUI / HyperOS 的视觉语言重做了界面层，保留悬浮底栏与多语言资源，适合继续在你现有的 Root 应用列表 / 模块管理工程上直接扩展。</string>
+
+    <string name="theme_system">跟随系统</string>
+    <string name="theme_light">浅色</string>
+    <string name="theme_dark">深色</string>
+
+    <string name="language_system">跟随系统</string>
+    <string name="language_zh_cn">简体中文</string>
+    <string name="language_en">English</string>
+    <string name="language_ja">日本語</string>
 </resources>

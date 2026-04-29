@@ -2,8 +2,10 @@ package com.rtools.superapp.ksuwebui
 
 import android.annotation.SuppressLint
 import android.app.ActivityManager
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.view.View
 import android.view.ViewGroup.MarginLayoutParams
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
@@ -11,9 +13,10 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.enableEdgeToEdge
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.updateLayoutParams
 import androidx.webkit.WebViewAssetLoader
 import com.topjohnwu.superuser.nio.FileSystemManager
@@ -27,13 +30,22 @@ class WebUIActivity : ComponentActivity(), FileSystemService.Listener {
     private lateinit var moduleDir: String
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Enable edge to edge
-        enableEdgeToEdge()
+        super.onCreate(savedInstanceState)
+
+        // 让模块 WebUI 页面维持和参考项目接近的浅色系统栏外观
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        window.statusBarColor = Color.WHITE
+        window.navigationBarColor = Color.WHITE
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             window.isNavigationBarContrastEnforced = false
         }
 
-        super.onCreate(savedInstanceState)
+        val controller = WindowInsetsControllerCompat(window, window.decorView)
+        controller.isAppearanceLightStatusBars = true
+        controller.isAppearanceLightNavigationBars = true
+
+        // 避免顶部 inset 区域露出黑底
+        window.decorView.setBackgroundColor(Color.WHITE)
 
         val moduleId = intent.getStringExtra("id")
         if (moduleId == null) {
@@ -57,6 +69,8 @@ class WebUIActivity : ComponentActivity(), FileSystemService.Listener {
         moduleDir = "/data/adb/modules/$moduleId"
 
         webView = WebView(this).apply {
+            setBackgroundColor(Color.WHITE)
+
             ViewCompat.setOnApplyWindowInsetsListener(this) { view, insets ->
                 val inset = insets.getInsets(WindowInsetsCompat.Type.systemBars())
                 view.updateLayoutParams<MarginLayoutParams> {
@@ -65,8 +79,9 @@ class WebUIActivity : ComponentActivity(), FileSystemService.Listener {
                     topMargin = inset.top
                     bottomMargin = inset.bottom
                 }
-                return@setOnApplyWindowInsetsListener insets
+                insets
             }
+
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
             settings.allowFileAccess = false
@@ -86,18 +101,20 @@ class WebUIActivity : ComponentActivity(), FileSystemService.Listener {
                 RemoteFsPathHandler(
                     this,
                     webRoot,
-                    fs
-                )
+                    fs,
+                ),
             )
             .build()
+
         val webViewClient = object : WebViewClient() {
             override fun shouldInterceptRequest(
                 view: WebView,
-                request: WebResourceRequest
+                request: WebResourceRequest,
             ): WebResourceResponse? {
                 return webViewAssetLoader.shouldInterceptRequest(request.url)
             }
         }
+
         webView.apply {
             addJavascriptInterface(webviewInterface, "ksu")
             setWebViewClient(webViewClient)
@@ -119,4 +136,3 @@ class WebUIActivity : ComponentActivity(), FileSystemService.Listener {
         FileSystemService.removeListener(this)
     }
 }
-

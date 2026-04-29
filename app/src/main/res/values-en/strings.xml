@@ -1,0 +1,65 @@
+<resources>
+    <string name="app_name">RootDeck</string>
+
+    <string name="tab_apps">Apps</string>
+    <string name="tab_modules">Modules</string>
+    <string name="tab_settings">Settings</string>
+
+    <string name="action_menu">Menu</string>
+    <string name="action_clear">Clear</string>
+    <string name="action_retry">Retry</string>
+    <string name="action_confirm">Confirm</string>
+    <string name="action_allow">Allow</string>
+    <string name="action_deny">Deny</string>
+    <string name="action_open_failed">Failed to open</string>
+
+    <string name="search_hint">Search apps or package names</string>
+
+    <string name="menu_sort_mode">Sort mode</string>
+    <string name="menu_show_system_apps">Show system apps</string>
+    <string name="menu_descending">Descending order</string>
+
+    <string name="sort_app_name">App name</string>
+    <string name="sort_package_size">Package size</string>
+    <string name="sort_install_time">Install time</string>
+
+    <string name="label_system_app">System app</string>
+
+    <string name="state_load_failed">Failed to load</string>
+    <string name="state_no_apps">No apps available</string>
+    <string name="state_no_match">No matching results</string>
+
+    <string name="root_permission_title">Root permission was not granted</string>
+    <string name="root_permission_message">This app needs superuser permission to work properly.</string>
+    <string name="root_permission_short">Please grant Root permission</string>
+    <string name="root_action_message">Allow this app to obtain superuser permission?</string>
+    <string name="toast_root_revoked">Root permission revoked for %1$s</string>
+    <string name="toast_root_granted">Root permission granted to %1$s</string>
+
+    <string name="module_empty">No modules available</string>
+    <string name="module_enable_web_debugging">Enable WebView debugging</string>
+    <string name="module_show_disabled">Show disabled modules</string>
+    <string name="module_author_format">Author: %1$s</string>
+    <string name="module_version_format">Version: %1$s</string>
+
+    <string name="setting_theme">Theme</string>
+    <string name="setting_language">Language</string>
+    <string name="setting_floating_bar">Floating bottom bar</string>
+    <string name="setting_floating_bar_summary">Capsule navigation with drag, press morphing, and auto-hide.</string>
+    <string name="setting_realtime_blur">Realtime blur</string>
+    <string name="setting_realtime_blur_summary">Enable live background blur for the top bar and dock.</string>
+    <string name="setting_liquid_glass">Liquid glass</string>
+    <string name="setting_liquid_glass_summary">Enable highlight, reflection, chroma vibration, and glass layers.</string>
+    <string name="setting_requires_android_13">Requires Android 13 or above.</string>
+    <string name="setting_about_title">FolkLite-inspired refactor</string>
+    <string name="setting_about_summary">This build reworks the interface around a MIUI / HyperOS visual language and adds realtime blur, liquid glass, a floating dock, and multilingual resources so you can continue extending it in your existing Root app and module manager project.</string>
+
+    <string name="theme_system">Follow system</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+
+    <string name="language_system">Follow system</string>
+    <string name="language_zh_cn">Simplified Chinese</string>
+    <string name="language_en">English</string>
+    <string name="language_ja">Japanese</string>
+</resources>
