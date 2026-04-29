@@ -1,5 +1,5 @@
 # RootDeck
-
+[简体中文](README.md) | [English](README.en.md) | [日本語](README.ja.md)
 RootDeck 是一个面向 Root 环境的 Android 管理工具，主要用于应用列表查看、Root 授权管理，以及支持 WebUI 的模块入口管理。
 
 项目使用 Kotlin 与 Jetpack Compose 编写，界面风格基于 MIUI / HyperOS 视觉风格。
