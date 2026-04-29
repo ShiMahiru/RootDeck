@@ -8,9 +8,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: '请输入本次发布的版本号，例如: v1.1.0'
-        required: true
-        default: 'v1.1.0'
+        description: '请输入本次发布的版本号，例如: v1.3.0；留空则自动读取 app/build.gradle.kts 的 versionName'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -30,6 +30,8 @@ jobs:
     steps:
       - name: 1. 检出代码
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: 2. 配置 JDK 17
         uses: actions/setup-java@v4
@@ -38,26 +40,54 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      - name: 3. 设置版本号
+      - name: 3. 设置并校验版本号
         shell: bash
         run: |
           set -euo pipefail
 
+          APP_VERSION="$(sed -nE 's/^[[:space:]]*versionName[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' app/build.gradle.kts | head -n 1)"
+
+          if [ -z "$APP_VERSION" ]; then
+            echo "::error::无法从 app/build.gradle.kts 读取 versionName"
+            exit 1
+          fi
+
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="${{ github.event.inputs.version }}"
+            INPUT_VERSION="${{ github.event.inputs.version || '' }}"
+
+            if [ -z "$INPUT_VERSION" ]; then
+              VERSION="v${APP_VERSION}"
+            else
+              VERSION="$INPUT_VERSION"
+            fi
           else
             VERSION="${GITHUB_REF_NAME}"
           fi
 
+          if [[ "$VERSION" =~ ^[0-9]+(\.[0-9]+){1,3}(-[A-Za-z0-9._-]+)?$ ]]; then
+            VERSION="v$VERSION"
+          fi
+
           if [[ ! "$VERSION" =~ ^v[0-9]+(\.[0-9]+){1,3}(-[A-Za-z0-9._-]+)?$ ]]; then
-            echo "::error::版本号格式不正确：$VERSION，示例：v1.1.0"
+            echo "::error::版本号格式不正确：$VERSION，示例：v1.3.0"
+            exit 1
+          fi
+
+          RELEASE_VERSION="${VERSION#v}"
+
+          if [ "$APP_VERSION" != "$RELEASE_VERSION" ]; then
+            echo "::error::源码 versionName=$APP_VERSION，但发布版本=$VERSION。请先同步 app/build.gradle.kts 的 versionName。"
             exit 1
           fi
 
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "APP_VERSION=$APP_VERSION" >> "$GITHUB_ENV"
           echo "RELEASE_APK_NAME=RootDeck-$VERSION-signed.apk" >> "$GITHUB_ENV"
 
-      - name: 4. 校验签名 Secrets
+          echo "发布版本：$VERSION"
+          echo "源码版本：$APP_VERSION"
+
+      - name: 4. 校验签名 Secrets 和 keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
@@ -79,48 +109,121 @@ jobs:
             exit 1
           fi
 
-          keystore_file="$(mktemp /tmp/rootdeck-keystore-XXXXXX.jks)"
+          KEY_ALIAS_INPUT="$(printf '%s' "$KEY_ALIAS" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
 
-          if ! printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$keystore_file"; then
+          if [ -z "$KEY_ALIAS_INPUT" ]; then
+            echo "::error::KEY_ALIAS 为空，请检查 GitHub Secrets"
+            exit 1
+          fi
+
+          KEYSTORE_FILE="${RUNNER_TEMP}/rootdeck-release-key.jks"
+
+          if ! printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_FILE"; then
             echo "::error::KEYSTORE_BASE64 不是有效的 Base64，请确认你上传的是 keystore 文件的 base64 内容。"
             exit 1
           fi
 
-          if ! keytool -list -keystore "$keystore_file" -storepass "$KEYSTORE_PASSWORD" > /tmp/rootdeck-keystore-list.txt 2>/tmp/rootdeck-keystore-error.txt; then
+          if ! keytool -list -v -keystore "$KEYSTORE_FILE" -storepass "$KEYSTORE_PASSWORD" > /tmp/rootdeck-keystore-list.txt 2>/tmp/rootdeck-keystore-error.txt; then
             echo "::error::无法读取 keystore。请检查 KEYSTORE_BASE64 与 KEYSTORE_PASSWORD 是否匹配。"
             cat /tmp/rootdeck-keystore-error.txt
             exit 1
           fi
 
-          if ! grep -F "$KEY_ALIAS" /tmp/rootdeck-keystore-list.txt >/dev/null; then
-            echo "::error::在 keystore 中未找到 KEY_ALIAS=$KEY_ALIAS，请确认别名正确。"
+          AVAILABLE_ALIASES="$(sed -n 's/^Alias name: //p' /tmp/rootdeck-keystore-list.txt)"
+
+          if [ -z "$AVAILABLE_ALIASES" ]; then
+            echo "::error::keystore 中没有读取到任何 Alias"
             exit 1
           fi
+
+          ACTUAL_ALIAS="$(printf '%s\n' "$AVAILABLE_ALIASES" | awk -v target="$KEY_ALIAS_INPUT" 'tolower($0) == tolower(target) { print; exit }')"
+
+          if [ -z "$ACTUAL_ALIAS" ]; then
+            echo "::error::在 keystore 中未找到 KEY_ALIAS=$KEY_ALIAS_INPUT"
+            echo "当前 keystore 中可用 Alias："
+            printf '%s\n' "$AVAILABLE_ALIASES" | sed 's/^/- /'
+            exit 1
+          fi
+
+          if ! keytool -list -keystore "$KEYSTORE_FILE" -storepass "$KEYSTORE_PASSWORD" -alias "$ACTUAL_ALIAS" >/dev/null 2>/tmp/rootdeck-alias-error.txt; then
+            echo "::error::无法使用 Alias 读取 keystore 条目。"
+            cat /tmp/rootdeck-alias-error.txt
+            exit 1
+          fi
+
+          echo "KEYSTORE_FILE=$KEYSTORE_FILE" >> "$GITHUB_ENV"
+          echo "KEY_ALIAS_CLEAN=$ACTUAL_ALIAS" >> "$GITHUB_ENV"
+
+          echo "keystore 校验通过"
 
       - name: 5. 赋予 Gradle 执行权限
         run: chmod +x gradlew
 
-      - name: 6. 编译 Release 版 APK
-        run: ./gradlew --no-daemon clean assembleRelease
-
-      - name: 7. 自动签名 APK
-        uses: r0adkll/sign-android-release@v1
-        id: sign_app
-        with:
-          releaseDirectory: app/build/outputs/apk/release
-          signingKeyBase64: ${{ secrets.KEYSTORE_BASE64 }}
-          alias: ${{ secrets.KEY_ALIAS }}
-          keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
-          keyPassword: ${{ secrets.KEY_PASSWORD }}
-        env:
-          BUILD_TOOLS_VERSION: '35.0.0'
-
-      - name: 8. 重命名已签名的 APK
+      - name: 6. 安装 Android Build Tools
         shell: bash
         run: |
           set -euo pipefail
-          mv "${{ steps.sign_app.outputs.signedReleaseFile }}" "${RELEASE_APK_NAME}"
-          ls -lh "${RELEASE_APK_NAME}"
+
+          SDKMANAGER="${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
+
+          if [ -x "$SDKMANAGER" ]; then
+            yes | "$SDKMANAGER" "build-tools;35.0.0" >/dev/null
+          else
+            echo "::warning::未找到 sdkmanager，将使用 runner 已安装的 Android Build Tools"
+          fi
+
+      - name: 7. 编译 Release 版 APK
+        run: ./gradlew --no-daemon clean assembleRelease
+
+      - name: 8. 对 APK 进行 zipalign 和签名
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          BUILD_TOOLS_DIR="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          ZIPALIGN="${BUILD_TOOLS_DIR}/zipalign"
+          APKSIGNER="${BUILD_TOOLS_DIR}/apksigner"
+
+          if [ ! -x "$ZIPALIGN" ]; then
+            echo "::error::未找到 zipalign"
+            exit 1
+          fi
+
+          if [ ! -x "$APKSIGNER" ]; then
+            echo "::error::未找到 apksigner"
+            exit 1
+          fi
+
+          mapfile -t APK_FILES < <(find app/build/outputs/apk/release -type f -name "*.apk" | sort)
+
+          if [ "${#APK_FILES[@]}" -eq 0 ]; then
+            echo "::error::未找到 Release APK"
+            find app/build/outputs -type f || true
+            exit 1
+          fi
+
+          UNSIGNED_APK="${APK_FILES[0]}"
+          ALIGNED_APK="${RUNNER_TEMP}/RootDeck-${VERSION}-aligned.apk"
+
+          echo "待签名 APK：$UNSIGNED_APK"
+          echo "使用 Build Tools：$BUILD_TOOLS_DIR"
+
+          "$ZIPALIGN" -p -f 4 "$UNSIGNED_APK" "$ALIGNED_APK"
+
+          "$APKSIGNER" sign \
+            --ks "$KEYSTORE_FILE" \
+            --ks-key-alias "$KEY_ALIAS_CLEAN" \
+            --ks-pass env:KEYSTORE_PASSWORD \
+            --key-pass env:KEY_PASSWORD \
+            --out "$RELEASE_APK_NAME" \
+            "$ALIGNED_APK"
+
+          "$APKSIGNER" verify --verbose "$RELEASE_APK_NAME"
+
+          ls -lh "$RELEASE_APK_NAME"
 
       - name: 9. 上传 APK 到 Actions Artifacts
         uses: actions/upload-artifact@v4
