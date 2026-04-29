@@ -1,8 +1,5 @@
 ---
 
-## 新建 `README.ja.md`
-
-```md
 # RootDeck
 
 [简体中文](README.md) | [English](README.en.md) | [日本語](README.ja.md)
